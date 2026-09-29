@@ -1,3 +1,12 @@
+/*
+Date : 29/09/2026
+Auteurs : Elpidio Alexis AMOUSSOU
+          Eli Yannick HOVI
+Emails : amoussouelpidioalexis@gmail.com
+         yannickeli2007@gmail.com
+But : Providers Riverpod partagés pour l'authentification : accès au client Supabase, état de la session, et récupération du profil utilisateur depuis la table public.users.
+*/
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 

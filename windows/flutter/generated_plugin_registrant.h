@@ -1,3 +1,12 @@
+/*
+Date : 29/09/2026
+Auteurs : Elpidio Alexis AMOUSSOU
+          Eli Yannick HOVI
+Emails : amoussouelpidioalexis@gmail.com
+         yannickeli2007@gmail.com
+But : Déclaration de l'enregistrement des plugins Flutter pour Windows.
+*/
+
 //
 //  Generated file. Do not edit.
 //

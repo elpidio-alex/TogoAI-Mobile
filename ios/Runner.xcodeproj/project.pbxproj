@@ -1,4 +1,12 @@
 // !$*UTF8*$!
+/*
+Date : 29/09/2026
+Auteurs : Elpidio Alexis AMOUSSOU
+          Eli Yannick HOVI
+Emails : amoussouelpidioalexis@gmail.com
+         yannickeli2007@gmail.com
+But : Projet Xcode définissant les cibles de compilation, dépendances et configurations de build pour iOS.
+*/
 {
 	archiveVersion = 1;
 	classes = {

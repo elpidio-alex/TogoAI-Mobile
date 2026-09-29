@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Modify this file to customize your launch splash screen -->
+<!--
+Date : 29/09/2026
+Auteurs : Elpidio Alexis AMOUSSOU
+          Eli Yannick HOVI
+Emails : amoussouelpidioalexis@gmail.com
+         yannickeli2007@gmail.com
+But : Configuration du calque d'arrière-plan de l'écran de démarrage Android pour API 21+.
+-->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:drawable="?android:colorBackground" />
 

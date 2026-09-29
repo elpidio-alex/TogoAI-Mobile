@@ -1,3 +1,12 @@
+<#
+Date : 29/09/2026
+Auteurs : Elpidio Alexis AMOUSSOU
+          Eli Yannick HOVI
+Emails : amoussouelpidioalexis@gmail.com
+         yannickeli2007@gmail.com
+But : Script PowerShell d'exécution de l'application Flutter en chargeant dynamiquement les variables du fichier .env via --dart-define.
+#>
+
 # Lance l'app avec les variables de .env (fichier non commité).
 # Usage:
 #   .\scripts\run.ps1                    # chrome

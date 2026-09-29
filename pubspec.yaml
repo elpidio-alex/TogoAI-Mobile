@@ -1,3 +1,10 @@
+# Date : 29/09/2026
+# Auteurs : Elpidio Alexis AMOUSSOU
+#           Eli Yannick HOVI
+# Emails : amoussouelpidioalexis@gmail.com
+#          yannickeli2007@gmail.com
+# But : Définition des métadonnées du package, dépendances externes (Riverpod, GoRouter, Supabase, etc.) et déclaration des assets de l'application TogoAI Mobile.
+
 name: togoai_mobile
 description: TogoAI — assistant IA pour l'actualité et les infos pratiques du Togo.
 publish_to: "none"

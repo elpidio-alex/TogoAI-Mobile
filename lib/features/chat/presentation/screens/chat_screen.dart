@@ -1,3 +1,12 @@
+/*
+Date : 29/09/2026
+Auteurs : Elpidio Alexis AMOUSSOU
+          Eli Yannick HOVI
+Emails : amoussouelpidioalexis@gmail.com
+         yannickeli2007@gmail.com
+But : Écran principal de conversation avec l'IA, gestionnaire d'état ChatController, affichage des messages, affichage des sources, sélection des modes (rag/realtime) et zone de saisie.
+*/
+
 import 'dart:async';
 
 import 'package:easy_localization/easy_localization.dart';
@@ -16,12 +25,21 @@ import '../../../conversations/presentation/widgets/conversations_drawer.dart';
 import '../../../settings/presentation/screens/settings_sheet.dart';
 import '../../data/chat_stream_client.dart';
 
+/// Génère un identifiant temporaire unique pour les messages locaux.
+///
+/// Utilisé pour l'insertion optimiste dans l'interface graphique avant
+/// que l'identifiant définitif ne soit attribué par la base de données.
 String _tempId() =>
     'local_${DateTime.now().microsecondsSinceEpoch}_${UniqueKey().hashCode}';
 
-
-/// Contrôleur de session chat (nouvelle ou existante).
+/// Contrôleur de session de messagerie instantanée (conversation nouvelle ou existante).
+///
+/// Orchestre le chargement de l'historique, la persistance locale/distante,
+/// la communication en streaming SSE avec l'agent d'IA, et la mise à jour
+/// réactive de l'état d'affichage [ChatViewState].
 class ChatController extends StateNotifier<ChatViewState> {
+  /// Initialise le contrôleur et déclenche le préchargement de l'historique
+  /// si un [conversationId] valide est fourni.
   ChatController(this._ref, {this.conversationId})
       : super(ChatViewState(conversationId: conversationId)) {
     if (conversationId != null) {
@@ -34,9 +52,14 @@ class ChatController extends StateNotifier<ChatViewState> {
   StreamSubscription<ChatStreamEvent>? _sub;
   final _client = ChatStreamClient();
 
+  /// Accès au référentiel de conversations pour les requêtes de persistance.
   ConversationsRepository get _repo =>
       _ref.read(conversationsRepositoryProvider);
 
+  /// Récupère la liste chronologique des messages de la conversation active.
+  ///
+  /// Met à jour l'indicateur de chargement [ChatViewState.loadingHistory]
+  /// pour afficher un retour visuel à l'utilisateur.
   Future<void> _loadHistory() async {
     if (conversationId == null) return;
     state = state.copyWith(loadingHistory: true);
@@ -44,16 +67,26 @@ class ChatController extends StateNotifier<ChatViewState> {
       final messages = await _repo.messages(conversationId!);
       state = state.copyWith(messages: messages, loadingHistory: false);
     } catch (_) {
+      // En cas d'erreur réseau ou RLS, on bascule l'état sans bloquer l'écran
       state = state.copyWith(loadingHistory: false);
     }
   }
 
+  /// Modifie le mode de réflexion et de recherche de l'IA ([ChatMode.rag] ou [ChatMode.realtime]).
   void setMode(ChatMode mode) {
     state = state.copyWith(mode: mode);
   }
 
+  /// Déclenche l'envoi d'un message utilisateur vers le backend d'IA.
   Future<void> send(String text) => _send(text);
 
+  /// Traitement complet de la soumission d'une question.
+  ///
+  /// 1. Validation du texte et de l'état actuel (évite les doubles envois).
+  /// 2. Vérification de l'authentification active.
+  /// 3. Initialisation de la conversation en base de données si premier échange.
+  /// 4. Insertion optimiste dans l'UI du message utilisateur et de la bulle assistant en cours de streaming.
+  /// 5. Ouverture du flux SSE et consommation incrémentale des fragments textuels et sources.
   Future<void> _send(String text) async {
     final question = text.trim();
     if (question.isEmpty || state.sending) return;
@@ -61,7 +94,7 @@ class ChatController extends StateNotifier<ChatViewState> {
     final session = _ref.read(currentSessionProvider);
     if (session == null) return;
 
-    // Créer conversation si besoin
+    // Création paresseuse de l'entité conversation lors du premier message
     if (conversationId == null) {
       final created = await _repo.create(
         userId: session.user.id,
@@ -71,11 +104,13 @@ class ChatController extends StateNotifier<ChatViewState> {
       state = state.copyWith(conversationId: created.id);
     }
 
+    // Préparation de l'historique contextuel pour le LLM (exclut les messages incomplets)
     final historique = state.messages
         .where((m) => !m.isStreaming && m.contenu.isNotEmpty)
         .map((m) => m.toHistorique())
         .toList();
 
+    // Création des objets de message pour affichage immédiat (pattern Optimistic UI)
     final userMsg = ChatMessage(
       id: _tempId(),
       role: 'user',
@@ -92,12 +127,14 @@ class ChatController extends StateNotifier<ChatViewState> {
       isStreaming: true,
     );
 
+    // Injection dans l'état réactif
     state = state.copyWith(
       messages: [...state.messages, userMsg, assistantMsg],
       sending: true,
       error: null,
     );
 
+    // Tentative de persistance asynchrone du message utilisateur
     try {
       await _repo.insertMessage(
         conversationId: conversationId!,
@@ -105,12 +142,13 @@ class ChatController extends StateNotifier<ChatViewState> {
         contenu: question,
       );
     } catch (_) {
-      // Continuer le stream même si la persistence échoue (RLS).
+      // Tolérance aux pannes : on poursuit le streaming même si la persistance immédiate échoue
     }
 
     var fullText = '';
     var collectedSources = <ChatSource>[];
 
+    // Annulation préventive d'un flux antérieur toujours actif
     await _sub?.cancel();
     _sub = _client
         .stream(
@@ -123,6 +161,7 @@ class ChatController extends StateNotifier<ChatViewState> {
       (event) {
         switch (event) {
           case ChatStreamSources(:final sources):
+            // Réception des sources documentaires associées à la réponse
             collectedSources = sources;
             _patchAssistant(
               assistantId,
@@ -131,6 +170,7 @@ class ChatController extends StateNotifier<ChatViewState> {
               streaming: true,
             );
           case ChatStreamChunk(:final text):
+            // Concaténation progressive du texte généré par l'IA
             fullText += text;
             _patchAssistant(
               assistantId,
@@ -139,8 +179,10 @@ class ChatController extends StateNotifier<ChatViewState> {
               streaming: true,
             );
           case ChatStreamDone():
+            // Clôture normale du flux
             _finishAssistant(assistantId, fullText, collectedSources);
           case ChatStreamError(:final message):
+            // Erreur signalée explicitement par le serveur
             _fail(assistantId, message);
         }
       },
@@ -153,9 +195,10 @@ class ChatController extends StateNotifier<ChatViewState> {
     );
   }
 
-  /// Relance la question [userText] depuis le message correspondant.
+  /// Relance l'inférence pour la question spécifiée par [userText].
   Future<void> retry(String userText) => _send(userText);
 
+  /// Met à jour localement le contenu et l'état du message assistant en cours d'affichage.
   void _patchAssistant(
     String id,
     String text,
@@ -173,6 +216,10 @@ class ChatController extends StateNotifier<ChatViewState> {
     state = state.copyWith(messages: messages);
   }
 
+  /// Finalise la réception du message de l'IA et persiste les résultats dans Supabase.
+  ///
+  /// Sauvegarde le message complet, associe les sources citées, met à jour
+  /// la date de dernière activité de la conversation et invalide le cache de la liste.
   Future<void> _finishAssistant(
     String id,
     String text,
@@ -195,10 +242,14 @@ class ChatController extends StateNotifier<ChatViewState> {
           state.messages.firstWhere((m) => m.role == 'user').contenu,
         ),
       );
+      // Notifie les observateurs de la liste des conversations du changement de titre/horodatage
       _ref.invalidate(conversationsListProvider);
-    } catch (_) {}
+    } catch (_) {
+      // Échec silencieux de la persistance en cas de déconnexion réseau
+    }
   }
 
+  /// Gère les erreurs de streaming en injectant un message d'échec lisible dans la bulle.
   void _fail(String id, String message) {
     _patchAssistant(
       id,
@@ -209,6 +260,7 @@ class ChatController extends StateNotifier<ChatViewState> {
     state = state.copyWith(sending: false, error: message);
   }
 
+  /// Interrompt manuellement le streaming en cours à la demande de l'utilisateur.
   void stop() {
     _sub?.cancel();
     state = state.copyWith(sending: false);
@@ -219,6 +271,7 @@ class ChatController extends StateNotifier<ChatViewState> {
     state = state.copyWith(messages: msgs);
   }
 
+  /// Libère les ressources du contrôleur : souscription de flux et client HTTP SSE.
   @override
   void dispose() {
     _sub?.cancel();
@@ -227,7 +280,12 @@ class ChatController extends StateNotifier<ChatViewState> {
   }
 }
 
+/// État immuable de l'écran de messagerie instantanée.
+///
+/// Encapsule la liste des messages affichés, le mode d'interrogation sélectionné,
+/// les indicateurs de chargement ou d'envoi en cours, et l'identifiant de conversation actif.
 class ChatViewState {
+  /// Crée une instance immuable de l'état de chat.
   const ChatViewState({
     this.messages = const [],
     this.mode = ChatMode.rag,
@@ -237,13 +295,25 @@ class ChatViewState {
     this.conversationId,
   });
 
+  /// Liste ordonnée chronologiquement des messages (utilisateur et assistant).
   final List<ChatMessage> messages;
+
+  /// Mode d'interrogation en vigueur (RAG documentaire ou actualité temps réel).
   final ChatMode mode;
+
+  /// Indique si une requête d'inférence ou de streaming est en cours d'exécution.
   final bool sending;
+
+  /// Indique si les messages de l'historique sont en cours de récupération depuis Supabase.
   final bool loadingHistory;
+
+  /// Message d'erreur éventuel survenu lors du transport ou du traitement.
   final String? error;
+
+  /// Identifiant UUID de la conversation en base de données, ou null si non initialisée.
   final String? conversationId;
 
+  /// Produit une copie immuable de l'état avec certains champs substitués.
   ChatViewState copyWith({
     List<ChatMessage>? messages,
     ChatMode? mode,
@@ -263,14 +333,23 @@ class ChatViewState {
   }
 }
 
+/// Fournisseur Riverpod avec cycle de vie auto-dispose indexé par identifiant de conversation.
+///
+/// Instancie un [ChatController] dédié à une session spécifique ou à une nouvelle discussion.
 final chatControllerProvider = StateNotifierProvider.autoDispose
     .family<ChatController, ChatViewState, String?>((ref, conversationId) {
   return ChatController(ref, conversationId: conversationId);
 });
 
+/// Écran principal de discussion avec l'intelligence artificielle TogoAI.
+///
+/// Affiche l'historique de discussion, le tiroir latéral des conversations antérieures,
+/// le panneau d'options (renommage, suppression) et le champ de saisie multimodal.
 class ChatScreen extends ConsumerStatefulWidget {
+  /// Construit la vue de chat pour la conversation [conversationId] (ou 'nouvelle').
   const ChatScreen({super.key, this.conversationId});
 
+  /// Identifiant optionnel de la conversation existante à charger.
   final String? conversationId;
 
   @override
@@ -285,13 +364,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   @override
   void initState() {
     super.initState();
+    // Vérification asynchrone post-rendu pour rediriger si le profil est incomplet
     WidgetsBinding.instance.addPostFrameCallback((_) => _ensureOnboarding());
   }
 
+  /// Vérifie que l'utilisateur a finalisé son tunnel d'onboarding (nom et prénom obligatoires).
   Future<void> _ensureOnboarding() async {
     final profile = await ref.read(userProfileProvider.future);
     if (!mounted) return;
     if (profile != null && !profile.hasRequiredName) {
+      // Redirection immédiate vers l'écran d'enregistrement d'identité
       context.go('/onboarding/nom-prenom');
     }
   }
@@ -303,6 +385,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     super.dispose();
   }
 
+  /// Compose un message d'accueil dynamique tenant compte de l'heure locale et du prénom.
   String _greeting(UserProfile? profile) {
     final hour = DateTime.now().hour;
     final base =
@@ -312,10 +395,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     return '$base, $name';
   }
 
+  /// Déclenche l'envoi du message saisi et anime la vue jusqu'en bas de liste.
   Future<void> _send(ChatController ctrl) async {
     final text = _input.text;
     _input.clear();
     await ctrl.send(text);
+    // Défilement automatique vers le nouveau message utilisateur
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scroll.hasClients) {
         _scroll.animateTo(
@@ -327,6 +412,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     });
   }
 
+  /// Affiche une boîte de dialogue pour renommer l'intitulé de la conversation active.
   Future<void> _renameActive(String activeId) async {
     final repo = ref.read(conversationsRepositoryProvider);
     final convs = await ref.read(conversationsListProvider.future);
@@ -358,6 +444,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
   }
 
+  /// Affiche une alerte de confirmation puis purge la conversation courante.
   Future<void> _deleteActive(String activeId) async {
     final ok = await showDialog<bool>(
       context: context,
@@ -386,6 +473,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         ref.invalidate(conversationsListProvider);
         ref.invalidate(chatControllerProvider(activeId));
         if (mounted) {
+          // Bascule sur une session vierge après suppression
           context.go('/chat/nouvelle');
         }
       } catch (_) {
@@ -423,6 +511,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         ),
         title: const TogoLogoWordmark(size: 28),
         actions: [
+          // Menu contextuel si une conversation est activement persistée
           if (activeConvId != null)
             PopupMenuButton<String>(
               icon: const Icon(Icons.more_vert),
@@ -484,7 +573,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         itemCount: chat.messages.length,
                         itemBuilder: (context, i) {
                           final msg = chat.messages[i];
-                          // Retrouve la question user précédente pour le bouton relancer
+                          // Retrouve la question utilisateur précédente pour alimenter l'action de réessai
                           String? prevUserQuestion;
                           if (msg.role == 'assistant') {
                             for (var j = i - 1; j >= 0; j--) {
@@ -531,7 +620,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 }
 
+/// État vide accueillant l'utilisateur sur une nouvelle session sans messages.
 class _EmptyState extends StatelessWidget {
+  /// Crée la vue d'accueil avec une formule de bienvenue personnalisée [greeting].
   const _EmptyState({required this.greeting});
   final String greeting;
 
@@ -570,7 +661,9 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
+/// Zone de composition de message avec champ de saisie, sélecteurs de mode et bouton d'action.
 class _Composer extends StatelessWidget {
+  /// Initialise la barre de composition avec ses gestionnaires d'actions.
   const _Composer({
     required this.controller,
     required this.mode,
@@ -708,7 +801,9 @@ class _Composer extends StatelessWidget {
   }
 }
 
+/// Bulle de message affichant les questions de l'utilisateur ou les réponses rédigées par l'IA.
 class _MessageBubble extends StatelessWidget {
+  /// Construit la bulle d'échange avec gestion facultative du bouton de réessai.
   const _MessageBubble({required this.message, this.onRetry});
   final ChatMessage message;
   final VoidCallback? onRetry;
@@ -718,6 +813,7 @@ class _MessageBubble extends StatelessWidget {
     final isUser = message.role == 'user';
     final t = context.togo;
 
+    // Rendu spécifique pour les messages émis par l'utilisateur
     if (isUser) {
       return Align(
         alignment: Alignment.centerRight,
@@ -740,6 +836,7 @@ class _MessageBubble extends StatelessWidget {
       );
     }
 
+    // Rendu pour les réponses générées par l'agent IA
     return Padding(
       padding: const EdgeInsets.only(bottom: 16, right: 12),
       child: Column(
@@ -764,6 +861,7 @@ class _MessageBubble extends StatelessWidget {
               ),
             ],
           ),
+          // Affichage des sources documentaires associées
           if (message.sources.isNotEmpty) ...[
             const SizedBox(height: 10),
             Wrap(
@@ -774,6 +872,7 @@ class _MessageBubble extends StatelessWidget {
                   .toList(),
             ),
           ],
+          // Barre d'actions sous le message (copie dans le presse-papier, relance)
           if (!message.isStreaming && message.contenu.isNotEmpty) ...[
             const SizedBox(height: 4),
             Row(
@@ -804,7 +903,9 @@ class _MessageBubble extends StatelessWidget {
   }
 }
 
+/// Pastille cliquable représentant une source documentaire citée par l'IA.
 class _SourceChip extends StatelessWidget {
+  /// Initialise la puce avec la référence documentaire [source].
   const _SourceChip({required this.source});
   final ChatSource source;
 
@@ -818,6 +919,7 @@ class _SourceChip extends StatelessWidget {
       onPressed: () async {
         final uri = Uri.tryParse(source.lien);
         if (uri != null && await canLaunchUrl(uri)) {
+          // Ouverture sécurisée dans le navigateur externe de l'OS
           await launchUrl(uri, mode: LaunchMode.externalApplication);
         }
       },
@@ -828,6 +930,7 @@ class _SourceChip extends StatelessWidget {
 /// Icône hamburger à 3 barres de longueurs dégressives (longue, moyenne, courte),
 /// alignées à gauche, pour un style moderne.
 class _DegressiveBarsIcon extends StatelessWidget {
+  /// Crée l'icône de navigation personnalisée.
   const _DegressiveBarsIcon();
 
   @override
@@ -845,7 +948,9 @@ class _DegressiveBarsIcon extends StatelessWidget {
   }
 }
 
+/// Peintre personnalisé dessinant les trois barres dégressives avec angles arrondis.
 class _DegressiveBarsPainter extends CustomPainter {
+  /// Initialise le peintre avec la couleur d'icône [color].
   _DegressiveBarsPainter({required this.color});
   final Color color;
 

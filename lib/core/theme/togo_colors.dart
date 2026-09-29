@@ -1,8 +1,20 @@
+/*
+Date : 29/09/2026
+Auteurs : Elpidio Alexis AMOUSSOU
+          Eli Yannick HOVI
+Emails : amoussouelpidioalexis@gmail.com
+         yannickeli2007@gmail.com
+But : Définition de la palette de couleurs de l'application TogoAI et implémentation de la classe d'extension de thème TogoTheme (modes clair et sombre).
+*/
+
 import 'package:flutter/material.dart';
 
-/// Palette fidèle à `globals.css` du web TogoAI.
+/// Palette de couleurs brutes et tokens sémantiques de la charte TogoAI.
+///
+/// Reproduit à l'identique les variables CSS de `globals.css` du site web TogoAI
+/// pour garantir une cohérence visuelle parfaite entre les plateformes Web et Mobile.
 abstract final class TogoColors {
-  // Accent
+  // Couleurs d'accentuation et d'action principale (Vert Togo)
   static const accentLight = Color(0xFF047857);
   static const accentDark = Color(0xFF059669);
   static const accentHoverLight = Color(0xFF065F46);
@@ -10,7 +22,7 @@ abstract final class TogoColors {
   static const accentSoftLight = Color(0x1F047857);
   static const accentSoftDark = Color(0x29059669);
 
-  // Light
+  // Palette claire (fond écru / papier doux, cartes blanches et bordures subtiles)
   static const bgAppLight = Color(0xFFFAF9F5);
   static const bgSidebarLight = Color(0xFFF3F2ED);
   static const bgCardLight = Color(0xFFFFFFFF);
@@ -21,7 +33,7 @@ abstract final class TogoColors {
   static const textSecondaryLight = Color(0xFF666560);
   static const textTertiaryLight = Color(0xFF999892);
 
-  // Dark
+  // Palette sombre (fonds anthracite chaleureux, contrastes doux)
   static const bgAppDark = Color(0xFF181816);
   static const bgSidebarDark = Color(0xFF1E1E1C);
   static const bgCardDark = Color(0xFF252523);
@@ -32,19 +44,19 @@ abstract final class TogoColors {
   static const textSecondaryDark = Color(0xFF9E9D98);
   static const textTertiaryDark = Color(0xFF6E6D68);
 
-  // Semantic
+  // Couleurs sémantiques d'alerte et de danger
   static const dangerLight = Color(0xFFDC2626);
   static const dangerDark = Color(0xFFEF4444);
 
-  // Auth header gradient
+  // Dégradé de la bannière d'authentification et onboarding
   static const authGreenTop = Color(0xFF15623B);
   static const authGreenMid = Color(0xFF0C3C24);
   static const authGreenBottom = Color(0xFF052012);
 
-  // Logo
+  // Couleur institutionnelle du logo
   static const navy = Color(0xFF0F1F3D);
 
-  // Chat
+  // Composants spécifiques du Chat (bulles de messages, boutons d'envoi désactivés)
   static const chatUserBubbleLight = Color(0xFFEFECE6);
   static const chatUserBubbleDark = Color(0xFF2B2A27);
   static const sendDisabledLight = Color(0xFFD6D5CE);
@@ -53,9 +65,13 @@ abstract final class TogoColors {
   static const inputBorderDark = Color(0xFF3A3935);
 }
 
-/// Extension ThemeData pour tokens métier.
+/// Extension du `ThemeData` Flutter fournissant les tokens métier personnalisés de TogoAI.
+///
+/// Permet d'accéder aux couleurs personnalisées directement depuis n'importe quel widget
+/// via le raccourci `context.togo` avec interpolation fluide lors des transitions de thème.
 @immutable
 class TogoTheme extends ThemeExtension<TogoTheme> {
+  /// Crée un ensemble de tokens thématiques [TogoTheme].
   const TogoTheme({
     required this.accent,
     required this.accentHover,
@@ -74,22 +90,38 @@ class TogoTheme extends ThemeExtension<TogoTheme> {
     required this.inputBorder,
   });
 
+  /// Couleur d'accentuation principale.
   final Color accent;
+  /// Couleur d'accentuation au survol.
   final Color accentHover;
+  /// Teinte d'accentuation transparente / douce.
   final Color accentSoft;
+  /// Couleur de fond principale de l'application.
   final Color bgApp;
+  /// Couleur de fond du tiroir latéral (Sidebar/Drawer).
   final Color bgSidebar;
+  /// Couleur de fond des cartes et conteneurs élevés.
   final Color bgCard;
+  /// Couleur d'état au survol.
   final Color bgHover;
+  /// Couleur d'état actif ou sélectionné.
   final Color bgActive;
+  /// Couleur des lignes de séparation et bordures.
   final Color border;
+  /// Couleur du texte secondaire (métadonnées, sous-titres).
   final Color textSecondary;
+  /// Couleur du texte tertiaire (placeholders, indices discrets).
   final Color textTertiary;
+  /// Couleur d'erreur ou d'action destructrice.
   final Color danger;
+  /// Couleur d'arrière-plan des bulles de messages de l'utilisateur.
   final Color userBubble;
+  /// Couleur du bouton d'envoi désactivé.
   final Color sendDisabled;
+  /// Couleur de la bordure des champs de saisie textuelle.
   final Color inputBorder;
 
+  /// Instance prédéfinie pour le thème clair.
   static const light = TogoTheme(
     accent: TogoColors.accentLight,
     accentHover: TogoColors.accentHoverLight,
@@ -108,6 +140,7 @@ class TogoTheme extends ThemeExtension<TogoTheme> {
     inputBorder: TogoColors.inputBorderLight,
   );
 
+  /// Instance prédéfinie pour le thème sombre.
   static const dark = TogoTheme(
     accent: TogoColors.accentDark,
     accentHover: TogoColors.accentHoverDark,
@@ -126,6 +159,7 @@ class TogoTheme extends ThemeExtension<TogoTheme> {
     inputBorder: TogoColors.inputBorderDark,
   );
 
+  /// Crée une copie modifiée des tokens thématiques.
   @override
   TogoTheme copyWith({
     Color? accent,
@@ -163,6 +197,7 @@ class TogoTheme extends ThemeExtension<TogoTheme> {
     );
   }
 
+  /// Interpole progressivement les couleurs lors d'une transition animée entre deux thèmes.
   @override
   TogoTheme lerp(ThemeExtension<TogoTheme>? other, double t) {
     if (other is! TogoTheme) return this;
@@ -186,6 +221,8 @@ class TogoTheme extends ThemeExtension<TogoTheme> {
   }
 }
 
+/// Extension d'utilité sur [BuildContext] pour accéder de manière concise aux tokens TogoAI.
 extension TogoThemeX on BuildContext {
+  /// Accesseur rapide vers l'instance active de [TogoTheme].
   TogoTheme get togo => Theme.of(this).extension<TogoTheme>()!;
 }

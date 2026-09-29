@@ -1,3 +1,12 @@
+/*
+Date : 29/09/2026
+Auteurs : Elpidio Alexis AMOUSSOU
+          Eli Yannick HOVI
+Emails : amoussouelpidioalexis@gmail.com
+         yannickeli2007@gmail.com
+But : Fonctions utilitaires Win32 (conversion de chaînes UTF, attachement console).
+*/
+
 #ifndef RUNNER_UTILS_H_
 #define RUNNER_UTILS_H_
 

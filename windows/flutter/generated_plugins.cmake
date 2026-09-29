@@ -1,3 +1,10 @@
+# Date : 29/09/2026
+# Auteurs : Elpidio Alexis AMOUSSOU
+#           Eli Yannick HOVI
+# Emails : amoussouelpidioalexis@gmail.com
+#          yannickeli2007@gmail.com
+# But : Liste générée des plugins Flutter Windows et configurations associées.
+
 #
 # Generated file, do not edit.
 #

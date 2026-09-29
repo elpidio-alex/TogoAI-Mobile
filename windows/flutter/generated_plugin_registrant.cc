@@ -1,3 +1,12 @@
+/*
+Date : 29/09/2026
+Auteurs : Elpidio Alexis AMOUSSOU
+          Eli Yannick HOVI
+Emails : amoussouelpidioalexis@gmail.com
+         yannickeli2007@gmail.com
+But : Enregistrement des plugins natifs Windows (app_links, url_launcher_windows) pour Flutter.
+*/
+
 //
 //  Generated file. Do not edit.
 //

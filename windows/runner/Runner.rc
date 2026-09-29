@@ -1,3 +1,12 @@
+/*
+Date : 29/09/2026
+Auteurs : Elpidio Alexis AMOUSSOU
+          Eli Yannick HOVI
+Emails : amoussouelpidioalexis@gmail.com
+         yannickeli2007@gmail.com
+But : Script de ressources Windows : icône, métadonnées de version et informations de binaire.
+*/
+
 // Microsoft Visual C++ generated resource script.
 //
 #pragma code_page(65001)

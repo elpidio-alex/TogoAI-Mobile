@@ -1,3 +1,12 @@
+/*
+Date : 29/09/2026
+Auteurs : Elpidio Alexis AMOUSSOU
+          Eli Yannick HOVI
+Emails : amoussouelpidioalexis@gmail.com
+         yannickeli2007@gmail.com
+But : Délégué d'application iOS principal (initialisation du cycle de vie de l'app et enregistrement des plugins Flutter).
+*/
+
 import Flutter
 import UIKit
 

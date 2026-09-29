@@ -1,9 +1,26 @@
+/*
+Date : 29/09/2026
+Auteurs : Elpidio Alexis AMOUSSOU
+          Eli Yannick HOVI
+Emails : amoussouelpidioalexis@gmail.com
+         yannickeli2007@gmail.com
+But : Configuration des thèmes Material 3 (clair et sombre) avec la police Google Fonts Inter, styles de boutons, formulaires et composants graphiques.
+*/
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'togo_colors.dart';
 
+/// Fabrique centrale du système de design Material 3 pour l'application TogoAI.
+///
+/// Génère les configurations de thèmes clair et sombre intégrant la typographie
+/// moderne [GoogleFonts.inter], les styles de composants arrondis (boutons pill,
+/// champs de formulaires arrondis) et l'extension de tokens [TogoTheme].
 abstract final class AppTheme {
+  /// Génère le thème visuel clair ([ThemeData]) de l'application TogoAI.
+  ///
+  /// Utilise un fond écru papier doux ([TogoColors.bgAppLight]) et un vert forêt ([TogoColors.accentLight]).
   static ThemeData light() => _build(
         brightness: Brightness.light,
         extension: TogoTheme.light,
@@ -18,6 +35,9 @@ abstract final class AppTheme {
         inputFill: TogoColors.bgCardLight,
       );
 
+  /// Génère le thème visuel sombre ([ThemeData]) de l'application TogoAI.
+  ///
+  /// Utilise des tons anthracite profonds et chaleureux ([TogoColors.bgAppDark]) pour préserver les yeux et la batterie.
   static ThemeData dark() => _build(
         brightness: Brightness.dark,
         extension: TogoTheme.dark,
@@ -32,6 +52,10 @@ abstract final class AppTheme {
         inputFill: TogoColors.bgCardDark,
       );
 
+  /// Méthode d'assemblage commune paramétrée pour instancier un [ThemeData] Material 3 cohérent.
+  ///
+  /// Configure la hiérarchie typographique, les palettes ColorScheme, les rayons de courbure,
+  /// les bordures de saisie et les états interactifs des contrôles.
   static ThemeData _build({
     required Brightness brightness,
     required TogoTheme extension,

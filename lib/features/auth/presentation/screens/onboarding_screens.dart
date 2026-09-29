@@ -1,3 +1,12 @@
+/*
+Date : 29/09/2026
+Auteurs : Elpidio Alexis AMOUSSOU
+          Eli Yannick HOVI
+Emails : amoussouelpidioalexis@gmail.com
+         yannickeli2007@gmail.com
+But : Écrans du tunnel d'onboarding pour compléter le profil : saisie du nom et prénom, choix du nom d'appel et renseignement de la date de naissance.
+*/
+
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,8 +19,12 @@ import '../../../../shared/providers/theme_provider.dart';
 import '../../../../shared/widgets/branding.dart';
 import '../../../../shared/widgets/togo_widgets.dart';
 
-/// Layout commun onboarding (logo + titre + formulaire).
+/// Structure visuelle partagée par l'ensemble des étapes du tunnel d'onboarding.
+///
+/// Encapsule le sélecteur de thème rapide (clair/sombre), le centrage adaptatif,
+/// le logotype TogoAI et la mise en page uniforme des titres et sous-titres.
 class _OnboardingShell extends ConsumerWidget {
+  /// Initialise le conteneur d'onboarding.
   const _OnboardingShell({
     required this.title,
     required this.subtitle,
@@ -93,7 +106,12 @@ class _OnboardingShell extends ConsumerWidget {
   }
 }
 
+/// Première étape d'onboarding obligatoire : renseignement du nom et prénom de l'utilisateur.
+///
+/// Si l'inscription provient d'un fournisseur OAuth (ex: Google), préremplit
+/// automatiquement les champs à partir des métadonnées `full_name` ou `given_name`.
 class OnboardingNomPrenomScreen extends ConsumerStatefulWidget {
+  /// Initialise l'écran de saisie du nom et prénom.
   const OnboardingNomPrenomScreen({super.key});
 
   @override
@@ -111,9 +129,16 @@ class _OnboardingNomPrenomScreenState
   @override
   void initState() {
     super.initState();
+    // Tentative de récupération des métadonnées existantes pour préremplissage
     _prefill();
   }
 
+  /// Résout et préremplit le nom et le prénom de l'utilisateur.
+  ///
+  /// Analyse dans l'ordre :
+  /// 1. Le profil déjà stocké en base de données.
+  /// 2. Les revendications d'identité OpenID (`family_name`, `given_name`).
+  /// 3. Le fractionnement du champ composé `full_name` ou `name`.
   Future<void> _prefill() async {
     final profile = await ref.read(userProfileProvider.future);
     final user = ref.read(supabaseProvider).auth.currentUser;
@@ -151,6 +176,7 @@ class _OnboardingNomPrenomScreenState
     super.dispose();
   }
 
+  /// Valide la présence des deux champs obligatoires et persiste le profil dans Supabase.
   Future<void> _submit() async {
     if (_nom.text.trim().isEmpty || _prenom.text.trim().isEmpty) {
       setState(() => _error = 'auth.erreurNomPrenomRequis'.tr());
@@ -171,6 +197,7 @@ class _OnboardingNomPrenomScreenState
             nom: _nom.text.trim(),
             prenom: _prenom.text.trim(),
           );
+      // Invalidation du cache de profil pour actualiser les vérifications de garde
       ref.invalidate(userProfileProvider);
       if (mounted) context.go('/onboarding/nom-appel');
     } catch (e) {
@@ -216,7 +243,12 @@ class _OnboardingNomPrenomScreenState
   }
 }
 
+/// Deuxième étape d'onboarding optionnelle : saisie du nom d'appel ou surnom familier.
+///
+/// Utilisé par l'agent IA TogoAI pour s'adresser chaleureusement à l'utilisateur.
+/// Cette étape peut être ignorée en cliquant sur « Passer ».
 class OnboardingNomAppelScreen extends ConsumerStatefulWidget {
+  /// Initialise l'écran de sélection du nom d'appel.
   const OnboardingNomAppelScreen({super.key});
 
   @override
@@ -233,6 +265,7 @@ class _OnboardingNomAppelScreenState
   @override
   void initState() {
     super.initState();
+    // Hydratation asynchrone si un nom d'appel préexiste déjà
     ref.read(userProfileProvider.future).then((p) {
       if (p?.nomAppel != null && mounted) {
         _nomAppel.text = p!.nomAppel!;
@@ -246,6 +279,7 @@ class _OnboardingNomAppelScreenState
     super.dispose();
   }
 
+  /// Sauvegarde le nom d'appel (ou une chaîne vide en cas de saut) et avance à l'étape suivante.
   Future<void> _save(String? value) async {
     final session = ref.read(currentSessionProvider);
     if (session == null) {
@@ -305,7 +339,12 @@ class _OnboardingNomAppelScreenState
   }
 }
 
+/// Troisième et dernière étape d'onboarding optionnelle : renseignement de la date de naissance.
+///
+/// Permet à TogoAI de personnaliser ses réponses selon la tranche d'âge de l'utilisateur.
+/// Cette étape peut être ignorée en cliquant sur « Passer ».
 class OnboardingDateNaissanceScreen extends ConsumerStatefulWidget {
+  /// Initialise l'écran de sélection de la date de naissance.
   const OnboardingDateNaissanceScreen({super.key});
 
   @override
@@ -319,6 +358,7 @@ class _OnboardingDateNaissanceScreenState
   bool _loading = false;
   String? _error;
 
+  /// Déploie le sélecteur de date natif du système d'exploitation.
   Future<void> _pick() async {
     final now = DateTime.now();
     final picked = await showDatePicker(
@@ -330,6 +370,7 @@ class _OnboardingDateNaissanceScreenState
     if (picked != null) setState(() => _date = picked);
   }
 
+  /// Persiste la date de naissance choisie et conclut l'onboarding vers l'écran principal de chat.
   Future<void> _save(DateTime? value) async {
     final session = ref.read(currentSessionProvider);
     if (session == null) {
@@ -346,6 +387,7 @@ class _OnboardingDateNaissanceScreenState
             dateNaissance: value,
           );
       ref.invalidate(userProfileProvider);
+      // Fin du tunnel d'onboarding : redirection vers une nouvelle discussion
       if (mounted) context.go('/chat/nouvelle');
     } catch (e) {
       setState(() => _error = e.toString());

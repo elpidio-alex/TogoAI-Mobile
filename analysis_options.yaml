@@ -1,3 +1,10 @@
+# Date : 29/09/2026
+# Auteurs : Elpidio Alexis AMOUSSOU
+#           Eli Yannick HOVI
+# Emails : amoussouelpidioalexis@gmail.com
+#          yannickeli2007@gmail.com
+# But : Configuration de l'analyseur statique Dart et règles de linter Flutter pour le projet TogoAI Mobile.
+
 analyzer:
   exclude:
     - build/**

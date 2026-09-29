@@ -1,3 +1,10 @@
+# Date : 29/09/2026
+# Auteurs : Elpidio Alexis AMOUSSOU
+#           Eli Yannick HOVI
+# Emails : amoussouelpidioalexis@gmail.com
+#          yannickeli2007@gmail.com
+# But : Configuration de compilation de l'exécutable Runner Windows pour l'application TogoAI Mobile.
+
 cmake_minimum_required(VERSION 3.14)
 project(runner LANGUAGES CXX)
 

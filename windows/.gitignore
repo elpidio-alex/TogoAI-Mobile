@@ -1,3 +1,10 @@
+# Date : 29/09/2026
+# Auteurs : Elpidio Alexis AMOUSSOU
+#           Eli Yannick HOVI
+# Emails : amoussouelpidioalexis@gmail.com
+#          yannickeli2007@gmail.com
+# But : Fichiers et dossiers spécifiques à Windows / Visual Studio exclus de Git.
+
 flutter/ephemeral/
 
 # Visual Studio user-specific files.

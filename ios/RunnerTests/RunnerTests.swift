@@ -1,3 +1,12 @@
+/*
+Date : 29/09/2026
+Auteurs : Elpidio Alexis AMOUSSOU
+          Eli Yannick HOVI
+Emails : amoussouelpidioalexis@gmail.com
+         yannickeli2007@gmail.com
+But : Tests unitaires XCTest pour le Runner iOS de TogoAI Mobile.
+*/
+
 import Flutter
 import UIKit
 import XCTest

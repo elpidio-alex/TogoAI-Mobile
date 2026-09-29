@@ -1,3 +1,12 @@
+/*
+Date : 29/09/2026
+Auteurs : Elpidio Alexis AMOUSSOU
+          Eli Yannick HOVI
+Emails : amoussouelpidioalexis@gmail.com
+         yannickeli2007@gmail.com
+But : Feuille modale des paramètres utilisateur : édition du profil, sélection du thème (système/clair/sombre), choix de langue (fr/en/ewe), déconnexion et suppression sécurisée du compte.
+*/
+
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,6 +22,10 @@ import '../../../auth/data/auth_repository.dart';
 import '../../../../core/config/app_config.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+/// Déploie la feuille modale inférieure des préférences de l'utilisateur.
+///
+/// Configure un affichage extensible ([isScrollControlled]) avec fond transparent
+/// pour préserver les bordures arrondies supérieures.
 Future<void> showSettingsSheet(BuildContext context) {
   return showModalBottomSheet(
     context: context,
@@ -22,7 +35,16 @@ Future<void> showSettingsSheet(BuildContext context) {
   );
 }
 
+/// Feuille modale des paramètres de l'application et du compte utilisateur.
+///
+/// Offre une interface unifiée pour :
+/// - La mise à jour des informations personnelles (nom, prénom, nom d'appel).
+/// - Le basculement du thème graphique (système, clair, sombre).
+/// - Le choix de la langue d'affichage (français, anglais, éwé).
+/// - La consultation des mentions légales et politiques de confidentialité.
+/// - La déconnexion ou la suppression réversible (soft-delete) du compte.
 class SettingsSheet extends ConsumerStatefulWidget {
+  /// Initialise le composant des paramètres.
   const SettingsSheet({super.key});
 
   @override
@@ -43,9 +65,13 @@ class _SettingsSheetState extends ConsumerState<SettingsSheet> {
   @override
   void initState() {
     super.initState();
+    // Hydratation initiale des champs depuis le profil Supabase
     _hydrate();
   }
 
+  /// Récupère le profil utilisateur distant et préremplit les formulaires et sélecteurs.
+  ///
+  /// Synchronise également le thème actif avec les préférences persistées.
   Future<void> _hydrate() async {
     final profile = await ref.read(userProfileProvider.future);
     if (!mounted) return;
@@ -53,7 +79,7 @@ class _SettingsSheetState extends ConsumerState<SettingsSheet> {
       _nom.text = profile?.nom ?? '';
       _prenom.text = profile?.prenom ?? '';
       _nomAppel.text = profile?.nomAppel ?? '';
-      _theme = AppThemeMode.fromDb(profile?.theme) ;
+      _theme = AppThemeMode.fromDb(profile?.theme);
       if (profile?.theme == null) {
         _theme = ref.read(themeModeProvider);
       }
@@ -61,7 +87,7 @@ class _SettingsSheetState extends ConsumerState<SettingsSheet> {
           context.locale.languageCode;
       _loading = false;
     });
-    // Appliquer thème immédiatement comme le web
+    // Alignement immédiat du thème avec le réglage enregistré
     ref.read(themeModeProvider.notifier).setMode(_theme);
   }
 
@@ -73,6 +99,13 @@ class _SettingsSheetState extends ConsumerState<SettingsSheet> {
     super.dispose();
   }
 
+  /// Persiste l'ensemble des modifications de profil et de préférences graphiques/linguistiques.
+  ///
+  /// Met à jour :
+  /// 1. La table distante `users` via [AuthRepository.updateProfile].
+  /// 2. L'état global du thème applicatif [themeModeProvider].
+  /// 3. La locale EasyLocalization et les SharedPreferences via [persistLocale].
+  /// 4. Invalide le cache [userProfileProvider] pour propager les changements.
   Future<void> _save() async {
     final session = ref.read(currentSessionProvider);
     if (session == null) return;
@@ -92,6 +125,7 @@ class _SettingsSheetState extends ConsumerState<SettingsSheet> {
       await ref.read(themeModeProvider.notifier).setMode(_theme);
       if (!mounted) return;
       await persistLocale(ref, context, _lang);
+      // Invalidation du provider pour rafraîchir les widgets abonnés au profil
       ref.invalidate(userProfileProvider);
       if (!mounted) return;
       setState(() => _success = 'settings.enregistre'.tr());
@@ -103,12 +137,13 @@ class _SettingsSheetState extends ConsumerState<SettingsSheet> {
     }
   }
 
+  /// Déconnecte l'utilisateur courant, réinitialise la session et redirige vers l'écran d'authentification.
   Future<void> _logout() async {
     Navigator.of(context).pop();
     try {
       await ref.read(authRepositoryProvider).signOut();
     } catch (_) {
-      // Ignorer si la session est déjà invalide ou expirée
+      // Tolère les erreurs si le jeton est déjà périmé ou la connexion indisponible
     }
     if (mounted) {
       context.go('/login');
@@ -393,9 +428,19 @@ class _SettingsSheetState extends ConsumerState<SettingsSheet> {
     );
   }
 
+  /// Orchestre le protocole strict de suppression réversible (soft-delete) du compte utilisateur.
+  ///
+  /// Implémente une barrière de sécurité à double facteur :
+  /// 1. Authentification forte : mot de passe actuel pour les comptes email/password,
+  ///    ou session récente (< 5 min) pour les comptes fédérés Google.
+  /// 2. Saisie explicite du mot-clé de confirmation "SUPPRIMER".
+  ///
+  /// En cas de succès, marque le compte `deleted_at = now()` et purge les sessions.
   Future<void> _confirmDeleteAccount() async {
     final passwordCtrl = TextEditingController();
     final confirmCtrl = TextEditingController();
+
+    // Détection du fournisseur d'identité OAuth (Google vs Email/Mot de passe)
     final isGoogle = () {
       final user = ref.read(supabaseProvider).auth.currentUser;
       return user?.appMetadata['provider'] == 'google' ||
@@ -452,6 +497,7 @@ class _SettingsSheetState extends ConsumerState<SettingsSheet> {
     if (ok != true || !mounted) return;
 
     try {
+      // Déclenche l'appel RPC Supabase sécurisé
       await ref.read(authRepositoryProvider).softDeleteAccount(
             password: passwordCtrl.text,
             confirmation: confirmCtrl.text.trim(),
@@ -462,6 +508,7 @@ class _SettingsSheetState extends ConsumerState<SettingsSheet> {
       }
     } on AuthException catch (e) {
       if (!mounted) return;
+      // Traduction et vulgarisation des codes d'erreur backend
       final msg = switch (e.message) {
         'mot_de_passe_incorrect' => 'auth.erreurIdentifiants'.tr(),
         'reauth_google_requise' =>
@@ -479,7 +526,9 @@ class _SettingsSheetState extends ConsumerState<SettingsSheet> {
   }
 }
 
+/// En-tête typographique textuel marquant le début d'un groupe logique de réglages.
 class _SectionLabel extends StatelessWidget {
+  /// Crée un libellé de section avec l'intitulé [text].
   const _SectionLabel(this.text);
   final String text;
 
@@ -497,8 +546,9 @@ class _SectionLabel extends StatelessWidget {
   }
 }
 
-/// Carte arrondie pour regrouper les éléments de paramètres.
+/// Carte conteneur à bords arrondis regroupant visuellement les champs et options de réglages.
 class _SettingsCard extends StatelessWidget {
+  /// Initialise la carte avec la liste de ses widgets enfants [children].
   const _SettingsCard({required this.children});
   final List<Widget> children;
 

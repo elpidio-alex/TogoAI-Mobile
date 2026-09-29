@@ -1,4 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+Date : 29/09/2026
+Auteurs : Elpidio Alexis AMOUSSOU
+          Eli Yannick HOVI
+Emails : amoussouelpidioalexis@gmail.com
+         yannickeli2007@gmail.com
+But : Schéma de construction et d'exécution Xcode pour l'application TogoAI Mobile (actions de build, exécution, test).
+-->
 <Scheme
    LastUpgradeVersion = "1510"
    version = "1.3">

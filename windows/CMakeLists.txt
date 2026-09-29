@@ -1,3 +1,10 @@
+# Date : 29/09/2026
+# Auteurs : Elpidio Alexis AMOUSSOU
+#           Eli Yannick HOVI
+# Emails : amoussouelpidioalexis@gmail.com
+#          yannickeli2007@gmail.com
+# But : Configuration de compilation CMake racine pour l'application de bureau Windows.
+
 # Project-level configuration.
 cmake_minimum_required(VERSION 3.14)
 project(togoai_mobile LANGUAGES CXX)

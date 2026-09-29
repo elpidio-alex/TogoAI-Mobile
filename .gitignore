@@ -1,3 +1,10 @@
+# Date : 29/09/2026
+# Auteurs : Elpidio Alexis AMOUSSOU
+#           Eli Yannick HOVI
+# Emails : amoussouelpidioalexis@gmail.com
+#          yannickeli2007@gmail.com
+# But : Fichiers, dossiers temporaires et artéfacts de compilation exclus du contrôle de version Git pour TogoAI Mobile.
+
 # Flutter
 .dart_tool/
 .flutter-plugins

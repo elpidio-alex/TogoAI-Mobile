@@ -1,3 +1,12 @@
+/*
+Date : 29/09/2026
+Auteurs : Elpidio Alexis AMOUSSOU
+          Eli Yannick HOVI
+Emails : amoussouelpidioalexis@gmail.com
+         yannickeli2007@gmail.com
+But : Implémentation des fonctions utilitaires Win32 (console de débogage et conversions UTF-16 vers UTF-8).
+*/
+
 #include "utils.h"
 
 #include <flutter_windows.h>

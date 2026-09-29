@@ -1,3 +1,10 @@
+# Date : 29/09/2026
+# Auteurs : Elpidio Alexis AMOUSSOU
+#           Eli Yannick HOVI
+# Emails : amoussouelpidioalexis@gmail.com
+#          yannickeli2007@gmail.com
+# But : Fichiers et dossiers spécifiques à iOS/Xcode exclus de Git.
+
 **/dgph
 *.mode1v3
 *.mode2v3

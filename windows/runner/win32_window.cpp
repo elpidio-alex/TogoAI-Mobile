@@ -1,3 +1,12 @@
+/*
+Date : 29/09/2026
+Auteurs : Elpidio Alexis AMOUSSOU
+          Eli Yannick HOVI
+Emails : amoussouelpidioalexis@gmail.com
+         yannickeli2007@gmail.com
+But : Implémentation de la fenêtre Win32, gestion des messages système (WndProc), High-DPI et dark mode.
+*/
+
 #include "win32_window.h"
 
 #include <dwmapi.h>

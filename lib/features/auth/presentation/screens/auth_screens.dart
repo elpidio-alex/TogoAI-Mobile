@@ -1,3 +1,12 @@
+/*
+Date : 29/09/2026
+Auteurs : Elpidio Alexis AMOUSSOU
+          Eli Yannick HOVI
+Emails : amoussouelpidioalexis@gmail.com
+         yannickeli2007@gmail.com
+But : Écrans d'authentification de l'application : connexion (LoginScreen), inscription (SignupScreen) et gestion du retour OAuth (AuthCallbackScreen).
+*/
+
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,7 +23,12 @@ import '../../../../shared/widgets/togo_widgets.dart';
 import '../../data/auth_repository.dart';
 import '../auth_flow.dart';
 
+/// Écran de connexion de l'utilisateur par adresse e-mail ou via Google OAuth.
+///
+/// Intègre la validation des identifiants, la détection des comptes marqués comme
+/// supprimés (soft-delete), et la bascule de thème clair/sombre dans l'en-tête.
 class LoginScreen extends ConsumerStatefulWidget {
+  /// Initialise l'écran de connexion.
   const LoginScreen({super.key});
 
   @override
@@ -37,6 +51,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
+  /// Valide et soumet les identifiants de connexion au service d'authentification Supabase.
+  ///
+  /// Intercepte spécifiquement les exceptions de soft-delete (`compte_supprime`),
+  /// d'identifiants erronés ou d'adresse email non confirmée pour afficher un retour adapté.
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() {
@@ -49,6 +67,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             password: _password.text,
           );
       if (res.user != null && mounted) {
+        // Redirection conditionnelle selon l'état de complétion du profil
         await navigateAfterAuth(ref, context);
       }
     } on AuthException catch (e) {
@@ -58,6 +77,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             : e.message;
       });
     } catch (e) {
+      // Diagnostic des erreurs standard renvoyées par Supabase GoTrue
       final msg = e.toString().toLowerCase();
       setState(() {
         if (msg.contains('invalid') || msg.contains('credentials')) {
@@ -74,6 +94,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
+  /// Déclenche le flux d'authentification fédérée Google OAuth.
   Future<void> _google() async {
     setState(() {
       _googleLoading = true;
@@ -226,7 +247,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 }
 
+/// Écran d'inscription d'un nouvel utilisateur (nom, prénom, e-mail, mot de passe fort).
+///
+/// Soumet les données de création de compte à Supabase et présente
+/// un écran de confirmation par e-mail en cas de succès.
 class SignupScreen extends ConsumerStatefulWidget {
+  /// Initialise l'écran d'inscription.
   const SignupScreen({super.key});
 
   @override
@@ -258,6 +284,10 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     super.dispose();
   }
 
+  /// Valide la robustesse cryptographique du mot de passe saisi.
+  ///
+  /// Exige une longueur minimale de 8 caractères, au moins une majuscule,
+  /// une minuscule, un chiffre et un caractère spécial.
   String? _validatePassword(String? v) {
     if (v == null || v.length < 8) return 'auth.erreurMdpLongueur'.tr();
     if (!RegExp(r'[A-Z]').hasMatch(v)) return 'auth.erreurMdpMajuscule'.tr();
@@ -269,6 +299,9 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     return null;
   }
 
+  /// Valide l'ensemble des contraintes du formulaire et transmet la requête de création de compte.
+  ///
+  /// Vérifie l'acceptation explicite des CGU/politique et la correspondance des deux mots de passe.
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (!_accepted) {
@@ -290,6 +323,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
             nom: _nom.text,
             prenom: _prenom.text,
           );
+      // Bascule vers l'état d'information sur la confirmation par courriel
       if (mounted) setState(() => _success = true);
     } catch (_) {
       setState(() => _error = 'auth.erreurCallback'.tr());
@@ -298,6 +332,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     }
   }
 
+  /// Déclenche l'inscription accélérée via l'identité Google OAuth.
   Future<void> _google() async {
     setState(() {
       _googleLoading = true;
@@ -313,6 +348,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     }
   }
 
+  /// Lance le navigateur externe pour consulter les conditions générales d'utilisation.
   Future<void> _openLegal() async {
     final uri = Uri.parse(AppConfig.termsUrl);
     if (await canLaunchUrl(uri)) {
@@ -553,6 +589,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   }
 }
 
+/// Icône vectorielle SVG officielle du logo Google « G » aux quatre couleurs.
 class _GoogleG extends StatelessWidget {
   const _GoogleG();
 
@@ -574,7 +611,13 @@ class _GoogleG extends StatelessWidget {
   }
 }
 
+/// Écran intermédiaire de capture et d'échange du jeton de retour OAuth (Deep Link).
+///
+/// Réceptionne les paramètres d'URL (ou fragments de hachage) issus de la redirection
+/// du fournisseur d'identité, finalise la session via Supabase PKCE et achemine
+/// l'utilisateur vers son parcours post-authentification.
 class AuthCallbackScreen extends ConsumerStatefulWidget {
+  /// Initialise la capture avec l'URI de redirection [uri].
   const AuthCallbackScreen({super.key, required this.uri});
 
   final Uri uri;
@@ -589,9 +632,11 @@ class _AuthCallbackScreenState extends ConsumerState<AuthCallbackScreen> {
   @override
   void initState() {
     super.initState();
+    // Exécution différée après le premier frame pour garantir un contexte monté
     WidgetsBinding.instance.addPostFrameCallback((_) => _complete());
   }
 
+  /// Analyse les fragments d'URL, extrait les jetons OAuth et synchronise la session client.
   Future<void> _complete() async {
     if (!AppConfig.hasSupabase) {
       if (mounted) context.go('/login');
@@ -599,12 +644,14 @@ class _AuthCallbackScreenState extends ConsumerState<AuthCallbackScreen> {
     }
 
     try {
+      // Normalisation de l'URI (prise en compte des fragments #access_token)
       final uri = (widget.uri.queryParameters.isNotEmpty ||
               widget.uri.fragment.isNotEmpty)
           ? widget.uri
           : Uri.base;
       final fragmentParams = Uri.splitQueryString(uri.fragment);
 
+      // Détection des erreurs signalées par le fournisseur OAuth
       final errorDesc = uri.queryParameters['error_description'] ??
           fragmentParams['error_description'] ??
           uri.queryParameters['error'] ??
@@ -620,6 +667,7 @@ class _AuthCallbackScreenState extends ConsumerState<AuthCallbackScreen> {
         return;
       }
 
+      // Échange du code d'autorisation contre un jeu de jetons d'accès
       final hasCode = uri.queryParameters.containsKey('code') ||
           fragmentParams.containsKey('code');
       final hasToken = uri.queryParameters.containsKey('access_token') ||
@@ -636,7 +684,7 @@ class _AuthCallbackScreenState extends ConsumerState<AuthCallbackScreen> {
       debugPrint('AuthCallback parse error: $e');
     }
 
-    // Si la session n'est pas encore prête, attendre la propagation (jusqu'à 4s)
+    // Boucle d'attente active de propagation de la session (max 4 secondes)
     if (Supabase.instance.client.auth.currentSession == null) {
       for (int i = 0; i < 8; i++) {
         await Future.delayed(const Duration(milliseconds: 500));
