@@ -1,0 +1,54 @@
+name: togoai_mobile
+description: TogoAI — assistant IA pour l'actualité et les infos pratiques du Togo.
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.5.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  flutter_web_plugins:
+    sdk: flutter
+
+  # State & navigation
+  flutter_riverpod: ^2.6.1
+  go_router: ^14.8.1
+
+  # Auth & backend
+  supabase_flutter: ^2.9.0
+  http: ^1.3.0
+
+  # i18n & prefs
+  easy_localization: ^3.0.7
+  shared_preferences: ^2.5.2
+
+  # UI
+  google_fonts: ^6.2.1
+  flutter_svg: ^2.0.17
+  url_launcher: ^6.3.1
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.14.4
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/translations/
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/app_icon.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/images/app_icon_foreground.png"
+  min_sdk_android: 21
+
